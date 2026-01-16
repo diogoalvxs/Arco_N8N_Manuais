@@ -498,9 +498,9 @@
     },
     {
       "parameters": {
-        "content": "## 🧠 RAG: Google Drive + Gemini + WhatsApp\n\nEste fluxo automatiza a leitura de documentos e permite conversar com eles via WhatsApp.\n\n### 📂 Parte 1: Ingestão de Documentos (Cima)\n1. **Drive Trigger:** Deteta novos ficheiros numa pasta específica do Google Drive.\n2. **Verificação de Loja:** Consulta a `Data Table` do n8n para ver se já existe uma *File Search Store* (chamada \"doc_store\").\n   - **Se existir:** Usa o ID guardado.\n   - **Se não existir:** Cria uma nova loja no Google Gemini e guarda o ID na tabela.\n3. **Upload & Indexação:** Envia o ficheiro (PDF) para a Google Cloud e indexa-o dentro da loja para ficar pesquisável.\n\n### 💬 Parte 2: Chat Inteligente (Baixo)\n4. **WhatsApp Trigger:** Recebe a pergunta do utilizador.\n5. **Contexto Dinâmico:** O nó `Get Store Name` vai à `Data Table` buscar o ID atual da loja (garantindo que lê sempre a versão mais recente).\n6. **Agente RAG:**\n   - Usa o modelo **Gemini 1.5 Flash**.\n   - Ativa a ferramenta `search_documents` para ler o conteúdo dos PDFs.\n   - Gera uma resposta natural baseada *apenas* nos documentos.\n7. **Resposta:** Envia a conclusão para o utilizador no WhatsApp.\n\n---\n**Nota:** Custos geridos via Google Cloud (SKU: Generative Language).",
+        "content": "## 🧠 RAG: Manuais AVAC + Segurança 🔒\n\nEste fluxo gere a leitura de manuais técnicos e permite consultas exclusivas para a equipa via WhatsApp.\n\n### 📂 Parte 1: Ingestão Automática (Cima)\n1. **Drive Trigger:** Monitoriza a pasta de manuais no Google Drive.\n2. **Gestão de Loja:** Verifica na `Data Table` se a loja \"doc_store\" já existe.\n   - **Se sim:** Usa o ID existente.\n   - **Se não:** Cria uma nova loja no Google Gemini e guarda o ID.\n3. **Indexação:** Envia o PDF para a Google Cloud para leitura futura.\n\n### 💬 Parte 2: Chat Seguro (Baixo)\n4. **WhatsApp Trigger:** Recebe a mensagem.\n5. **⛔ Segurança (Portaria):** O nó `Verificar Permissão` valida se o número de telefone pertence à lista de técnicos autorizados. Se não pertencer, o fluxo para.\n6. **Contexto:** O nó `Get Store Name` recupera o ID da loja atualizado da tabela.\n7. **Agente RAG:**\n   - Modelo: **Gemini Flash**.\n   - Ferramenta: `search_documents` (lê o conteúdo técnico).\n   - Responde apenas com base nos manuais.\n\n---\n**Custo:** Gerido via Google Cloud (Pay-as-you-go).",
         "height": 568,
-        "width": 800,
+        "width": 864,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
@@ -514,7 +514,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 🔒 LISTA DE TÉCNICOS AUTORIZADOS 🔒\n// Adiciona aqui os números (com código de país, sem +)\nconst allowedNumbers = [\n  \"351910844181\", // Chefe\n  \"351912345678\", // Técnico 1\n  \"351961234567\"  // Técnico 2\n];\n\n// Pega o número de quem enviou a mensagem\nconst senderNumber = $input.item.json.messages[0].from;\n\n// Verifica se está na lista\nconst isAuthorized = allowedNumbers.includes(senderNumber);\n\nreturn {\n  json: {\n    isAuthorized: isAuthorized,\n    senderNumber: senderNumber\n  }\n};"
+        "jsCode": "// 🔒 LISTA DE TÉCNICOS AUTORIZADOS 🔒\n// Adiciona aqui os números (com código de país, sem +)\nconst allowedNumbers = [\n  \"351935747760\", // Técnico 1\n  // \"351912345678\" // Exemplo Técnico 2\n];\n\n// 1. Tenta obter a lista de mensagens\n// (O WhatsApp envia eventos de status, como \"lido\", que não têm 'messages')\nconst messages = $input.item.json.messages;\n\n// 2. Proteção: Se não houver mensagem, define como falso e para por aqui\n// Isto evita o erro \"undefined reading '0'\"\nif (!messages || !messages.length) {\n  return {\n    json: {\n      isAuthorized: false,\n      senderNumber: 'status_update'\n    }\n  };\n}\n\n// 3. Se houver mensagem real, pega o número\nconst senderNumber = messages[0].from;\n\n// 4. Verifica se está na lista\nconst isAuthorized = allowedNumbers.includes(senderNumber);\n\nreturn {\n  json: {\n    isAuthorized: isAuthorized,\n    senderNumber: senderNumber\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1055,12 +1055,12 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "f99e0352-bfd1-44ad-8ce5-529c61401a48",
+  "versionId": "7d2034b6-b06f-456d-a376-cc80a5145a9b",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "398eca17c0436e279f7e56db4d05acbe44d506fc72052ca9d5417d298ef719ad"
