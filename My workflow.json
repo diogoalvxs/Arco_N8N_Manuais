@@ -1,0 +1,1070 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "138rnNoScydu51XmjXumQamCPTGbDG0Vs",
+          "mode": "list",
+          "cachedResultName": "Arco_Manuais",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/138rnNoScydu51XmjXumQamCPTGbDG0Vs"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        288
+      ],
+      "id": "843809bc-2cfd-4543-863b-04b212553c2c",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IXrTRwC1620u7Xqx",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        288
+      ],
+      "id": "701e98f3-6960-47e0-811c-6a2c7c8ec075",
+      "name": "Baixar Arquivo",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IXrTRwC1620u7Xqx",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Adapta os dados do Drive para o formato esperado pelo fluxo\nreturn items.map(item => {\n  // O nó de Download coloca o arquivo em 'data'\n  const binaryKey = 'data';\n  const binaryData = item.binary[binaryKey];\n  \n  // O nome vem do JSON do Trigger/Download (tenta name ou originalFilename)\n  const filename = item.json.name || item.json.originalFilename || 'arquivo.pdf';\n  \n  return {\n    json: {\n      filename: filename,\n      mimetype: item.json.mimeType,\n      size: item.json.size,\n      // Cria o metadataString necessário para o nó de Upload\n      metadataString: JSON.stringify({\n        file: {\n          display_name: filename\n        }\n      })\n    },\n    binary: {\n      data: binaryData // Mantém como 'data' para compatibilidade\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        288
+      ],
+      "id": "1c61626b-992c-4efc-8417-0fe1dc3eb761",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fbac2ca3-2bef-45b5-b7b4-7048f3436f61",
+              "name": "store_name",
+              "value": "doc_store",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        288
+      ],
+      "id": "c35f1652-b679-45d8-8c00-76b8f542caf5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "kYyyXS7QMguzzTEO",
+          "mode": "list",
+          "cachedResultName": "data_stores",
+          "cachedResultUrl": "/projects/VoLryv2nKrTozCzU/datatables/kYyyXS7QMguzzTEO"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "displayName",
+              "keyValue": "={{ $json.store_name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        880,
+        288
+      ],
+      "id": "59f35158-356b-48f2-8549-0871e1b49e18",
+      "name": "Get row(s)",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ddfc1529-7acd-4533-97f8-11caba66fb51",
+              "leftValue": "={{ $json.displayName }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        288
+      ],
+      "id": "f1937af2-62e8-4cb7-927e-43706cd58a00",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega explicitamente o binário do primeiro item do nó original\nconst binaryData = $('Code in JavaScript').first().binary; \n\nconst storeInfo = $input.item.json;\n\nreturn {\n  json: {\n    ...storeInfo,\n    ...$('Code in JavaScript').first().json\n  },\n  binary: binaryData\n};"
+      },
+      "id": "aa21f6f3-7af8-4a2b-902d-fb6c413bab18",
+      "name": "Combine Store Info with Binary1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/upload/v1beta/files",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyDuqY6sfU-VYBzjeWGxBmTLwNZo371FXZ4"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4e00f3a4-4386-4cbc-a688-5225ac9127a9",
+      "name": "Upload File to Store",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1600,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b6c20f0f-d170-4590-81a9-2cef7616962f",
+              "name": "store_name",
+              "value": "={{ $('Get row(s)').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "f2c7a1fd-bac2-40b9-8623-7a4ddd59b255",
+              "name": "file_name",
+              "value": "={{ $json.file.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1824,
+        160
+      ],
+      "id": "2d215a03-26c7-4e7d-8b16-4e814a90bff6",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/{{ $json.store_name }}:importFile",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyDuqY6sfU-VYBzjeWGxBmTLwNZo371FXZ4"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fileName\": \"{{ $json.file_name }}\",\n  \"customMetadata\": [\n    {\n      \"key\": \"upload_date\",\n      \"stringValue\": \"{{ $now.format('yyyy-MM-dd') }}\"\n    },\n    {\n      \"key\": \"source\",\n      \"stringValue\": \"n8n\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "e4d77be2-e067-4382-9341-88db44cfee43",
+      "name": "Import to Store",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2048,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/fileSearchStores",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyDuqY6sfU-VYBzjeWGxBmTLwNZo371FXZ4"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "displayName",
+              "value": "={{ $('Edit Fields').item.json.store_name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7b2c7cc5-2b4b-4f58-b3e1-72576b64ec3e",
+      "name": "Create File Search Store",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1360,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "kYyyXS7QMguzzTEO",
+          "mode": "list",
+          "cachedResultName": "data_stores",
+          "cachedResultUrl": "/projects/VoLryv2nKrTozCzU/datatables/kYyyXS7QMguzzTEO"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "displayName": "={{ $json.displayName }}",
+            "name": "={{ $json.name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "displayName",
+              "displayName": "displayName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        448
+      ],
+      "id": "cceed2a3-3376-4bd1-9770-e7b919a93340",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b6c20f0f-d170-4590-81a9-2cef7616962f",
+              "name": "store_name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1824,
+        448
+      ],
+      "id": "f7abf535-b933-4453-b67d-23a6e13cf5bd",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega explicitamente o binário do primeiro item do nó original\nconst binaryData = $('Code in JavaScript').first().binary; \n\nconst storeInfo = $input.item.json;\n\nreturn {\n  json: {\n    ...storeInfo,\n    ...$('Code in JavaScript').first().json\n  },\n  binary: binaryData\n};"
+      },
+      "id": "5b455644-cb3e-43cd-975d-0ec39d5e0475",
+      "name": "Combine Store Info with Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/upload/v1beta/files",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyDuqY6sfU-VYBzjeWGxBmTLwNZo371FXZ4"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "56e6f5a2-e15d-4247-bd3c-f7536e3f05e1",
+      "name": "Upload File to Store1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2272,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b6c20f0f-d170-4590-81a9-2cef7616962f",
+              "name": "store_name",
+              "value": "={{ $('Insert row').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "4e15216a-e06a-48e2-89dc-d260127eedd9",
+              "name": "file_name",
+              "value": "={{ $json.file.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2480,
+        448
+      ],
+      "id": "6a71e88a-acbf-4866-8a40-579e7964eda7",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/{{ $json.store_name }}:importFile",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyDuqY6sfU-VYBzjeWGxBmTLwNZo371FXZ4"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fileName\": \"{{ $json.file_name }}\",\n  \"customMetadata\": [\n    {\n      \"key\": \"upload_date\",\n      \"stringValue\": \"{{ $now.format('yyyy-MM-dd') }}\"\n    },\n    {\n      \"key\": \"source\",\n      \"stringValue\": \"n8n\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "8c406060-86c6-421e-92b4-8309e98d2af5",
+      "name": "Import to Store1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2704,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🧠 RAG: Google Drive + Gemini + WhatsApp\n\nEste fluxo automatiza a leitura de documentos e permite conversar com eles via WhatsApp.\n\n### 📂 Parte 1: Ingestão de Documentos (Cima)\n1. **Drive Trigger:** Deteta novos ficheiros numa pasta específica do Google Drive.\n2. **Verificação de Loja:** Consulta a `Data Table` do n8n para ver se já existe uma *File Search Store* (chamada \"doc_store\").\n   - **Se existir:** Usa o ID guardado.\n   - **Se não existir:** Cria uma nova loja no Google Gemini e guarda o ID na tabela.\n3. **Upload & Indexação:** Envia o ficheiro (PDF) para a Google Cloud e indexa-o dentro da loja para ficar pesquisável.\n\n### 💬 Parte 2: Chat Inteligente (Baixo)\n4. **WhatsApp Trigger:** Recebe a pergunta do utilizador.\n5. **Contexto Dinâmico:** O nó `Get Store Name` vai à `Data Table` buscar o ID atual da loja (garantindo que lê sempre a versão mais recente).\n6. **Agente RAG:**\n   - Usa o modelo **Gemini 1.5 Flash**.\n   - Ativa a ferramenta `search_documents` para ler o conteúdo dos PDFs.\n   - Gera uma resposta natural baseada *apenas* nos documentos.\n7. **Resposta:** Envia a conclusão para o utilizador no WhatsApp.\n\n---\n**Nota:** Custos geridos via Google Cloud (SKU: Generative Language).",
+        "height": 568,
+        "width": 800,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1024,
+        -624
+      ],
+      "typeVersion": 1,
+      "id": "673836c9-3ae1-4898-9851-ab482dcc422c",
+      "name": "Instruções"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔒 LISTA DE TÉCNICOS AUTORIZADOS 🔒\n// Adiciona aqui os números (com código de país, sem +)\nconst allowedNumbers = [\n  \"351910844181\", // Chefe\n  \"351912345678\", // Técnico 1\n  \"351961234567\"  // Técnico 2\n];\n\n// Pega o número de quem enviou a mensagem\nconst senderNumber = $input.item.json.messages[0].from;\n\n// Verifica se está na lista\nconst isAuthorized = allowedNumbers.includes(senderNumber);\n\nreturn {\n  json: {\n    isAuthorized: isAuthorized,\n    senderNumber: senderNumber\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        752
+      ],
+      "id": "da490e45-a169-479e-9b15-6407f23e2e57",
+      "name": "Verificar Permissão"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.isAuthorized }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        752
+      ],
+      "id": "048e79e5-bdfb-4620-af26-ff5dd78d42bc",
+      "name": "É Técnico Autorizado?"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "kYyyXS7QMguzzTEO",
+          "mode": "list",
+          "cachedResultName": "data_stores",
+          "cachedResultUrl": "/projects/VoLryv2nKrTozCzU/datatables/kYyyXS7QMguzzTEO"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "displayName",
+              "keyValue": "doc_store"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1488,
+        736
+      ],
+      "id": "9c39b308-2a61-433a-abc9-fe824f5641b4",
+      "name": "Get Store Name1"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        464,
+        752
+      ],
+      "id": "55bfdaee-8a78-4fe9-818c-b95ec9f4c8ac",
+      "name": "WhatsApp Trigger",
+      "webhookId": "b19b29ed-7723-4581-b6b1-ce5fcc92a576",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "prgWNQxQWajrQn0s",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "store_name",
+              "name": "store_name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "api_key",
+              "name": "api_key",
+              "value": "AIzaSyDuqY6sfU-VYBzjeWGxBmTLwNZo371FXZ4",
+              "type": "string"
+            },
+            {
+              "id": "user_question",
+              "name": "chatInput",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "session_id",
+              "name": "sessionId",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1680,
+        736
+      ],
+      "id": "1c7951f2-0051-4e48-a1b1-27a0a60a4c30",
+      "name": "Preparar Dados"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $('Preparar Dados').item.json.api_key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"{{ $('Preparar Dados').item.json.chatInput }}\"\n        }\n      ]\n    }\n  ],\n  \"tools\": [\n    {\n      \"fileSearch\": {\n        \"fileSearchStoreNames\": [\"{{ $('Preparar Dados').item.json.store_name }}\"]\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        2400,
+        992
+      ],
+      "id": "15cf5b2b-730a-464d-9ea7-a7628d1d8f09",
+      "name": "search_documents"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        944
+      ],
+      "id": "ecac7d92-80d5-4a2d-8536-6182bde971da",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "EZmNvFybuskQbPwI",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2096,
+        960
+      ],
+      "id": "1d856d4d-83cc-48e3-b31b-3d5eeaca22e1",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        2224,
+        960
+      ],
+      "id": "7b3938da-6973-4b99-9686-4cdd783292d1",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a document search assistant on WhatsApp. \n\nMANDATORY BEHAVIOR:\n- When user mentions \"document\", \"file\", \"content\", or asks ANY question → IMMEDIATELY call search_documents tool\n- DO NOT ask for clarification\n- JUST SEARCH\n\nRESPONSE FORMAT:\n- Extract answer from tool.\n- Keep the answer friendly and suitable for WhatsApp (concise, you can use emojis).\n- If citations are available, mention them briefly.\n\nINPUT QUERY: {{ $('Preparar Dados').item.json.chatInput }}",
+        "options": {
+          "systemMessage": "=Session ID: {{ $('Preparar Dados').item.json.sessionId }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2048,
+        736
+      ],
+      "id": "db3f4665-d56d-4dcc-944d-03a84e625461",
+      "name": "RAG Agent"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1007758642409299",
+        "recipientPhoneNumber": "={{ $('Preparar Dados').item.json.sessionId }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2736,
+        736
+      ],
+      "id": "0a7f82ef-decb-4577-82c0-061530aab62e",
+      "name": "Responder no WhatsApp",
+      "webhookId": "4a77b350-ac5a-4ddc-9076-5c81c7a54bf9",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rjKattUw2AsYHrMe",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Baixar Arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar Arquivo": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Combine Store Info with Binary1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create File Search Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Store Info with Binary1": {
+      "main": [
+        [
+          {
+            "node": "Upload File to Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload File to Store": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Import to Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create File Search Store": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Combine Store Info with Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Store Info with Binary": {
+      "main": [
+        [
+          {
+            "node": "Upload File to Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload File to Store1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Import to Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Permissão": {
+      "main": [
+        [
+          {
+            "node": "É Técnico Autorizado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Store Name1": {
+      "main": [
+        [
+          {
+            "node": "Preparar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Verificar Permissão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Dados": {
+      "main": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_documents": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Agent": {
+      "main": [
+        [
+          {
+            "node": "Responder no WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É Técnico Autorizado?": {
+      "main": [
+        [
+          {
+            "node": "Get Store Name1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f99e0352-bfd1-44ad-8ce5-529c61401a48",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "398eca17c0436e279f7e56db4d05acbe44d506fc72052ca9d5417d298ef719ad"
+  },
+  "id": "KktIJYSJFRk2-oIBITBLs",
+  "tags": []
+}
